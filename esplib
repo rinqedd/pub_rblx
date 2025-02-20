@@ -2,14 +2,14 @@
 
 --// TODO: I have no clue what to do
 
---// rinq#9949
+--// @rinq
 
 local Player = game.Players.LocalPlayer
 
 local ESPLibrary = {ESPInstances = {}}
 local Instances = ESPLibrary["ESPInstances"]
 
-local ESPHolder = Instance.new("Folder",game.CoreGui)
+local ESPHolder = Instance.new("Folder",gethui())
 ESPHolder.Name = "ESPHolder"
 
 function MakeBBGui(Parent,Name,Part)
