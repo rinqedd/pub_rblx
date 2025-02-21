@@ -18,16 +18,33 @@ DrawingHolder = UIHolder
 
 local Types = setmetatable({
     ["Line"] = function(self)
-
-    end;
-
-    ["Box"] = function(self)
-
-    end;
-
-    ["Circle"] = function(self)
-
-    end
+		self.Frame.BorderSizePixel = 0
+		self.Frame.Size = UDim2.new(0, 0, 0, 1.5)
+		return 1
+	end,
+	["Box"] = function(self)
+		self.Frame.BackgroundTransparency = 1
+		self.Stroke = Instance.new("UIStroke")
+		self.Stroke.Color = Color3.fromRGB(255, 255, 255)
+		self.Stroke.Thickness = 2
+		self.Stroke.Parent = self.Frame
+		return 1
+	end,
+	["Circle"] = function(self)
+		self.Frame.BackgroundTransparency = 1
+		self.Corner = Instance.new("UICorner")
+		self.Corner.CornerRadius = UDim.new(0, 9e5)
+		self.Corner.Parent = self.Frame
+		self.Stroke = Instance.new("UIStroke")
+		self.Stroke.Color = Color3.fromRGB(255, 255, 255)
+		self.Stroke.Thickness = 2
+		self.Stroke.Parent = self.Frame
+		self.AspectRatio = Instance.new("UIAspectRatioConstraint")
+		self.AspectRatio.AspectType = Enum.AspectType.ScaleWithParentSize
+		self.AspectRatio.DominantAxis = Enum.DominantAxis.Height
+		self.AspectRatio.Parent = self.Frame
+		return 1
+	end
 }, {
     __index = function(self, key)
         return function(DrawTable)
