@@ -160,7 +160,7 @@ function Drawing:Enable()
 end
 
 function Drawing:Render(...)
-    if self.Type and self.Enabled then
+    if self.Type then
         local Args = table.pack(...)
         local Size = self.Frame.Size
 
