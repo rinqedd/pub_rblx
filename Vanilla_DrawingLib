@@ -21,7 +21,8 @@ local Types = setmetatable({
 		self.Frame.BorderSizePixel = 0
 		self.Frame.Size = UDim2.new(0, 0, 0, 1.5)
 		return 1
-	end,
+	end;
+    
 	["Box"] = function(self)
 		self.Frame.BackgroundTransparency = 1
 		self.Stroke = Instance.new("UIStroke")
@@ -29,7 +30,8 @@ local Types = setmetatable({
 		self.Stroke.Thickness = 2
 		self.Stroke.Parent = self.Frame
 		return 1
-	end,
+	end;
+
 	["Circle"] = function(self)
 		self.Frame.BackgroundTransparency = 1
 		self.Corner = Instance.new("UICorner")
