@@ -97,6 +97,7 @@ function Drawing.new(Type)
     self.Type = Type
     self.Pos1 = nil
     self.Pos2 = nil
+    self.Enabled = true
 
     self.Frame = Instance.new("Frame")
     self.Frame.Name = Type
@@ -146,18 +147,20 @@ end
 
 function Drawing:Disable()
     if self.Type then
+        self.Enabled = false
         self.Frame.Visible = false
     end
 end
 
 function Drawing:Enable()
     if self.Type then
+        self.Enabled = true
         self.Frame.Visible = true
     end
 end
 
 function Drawing:Render(...)
-    if self.Type then
+    if self.Type and self.Enabled then
         local Args = table.pack(...)
         local Size = self.Frame.Size
 
