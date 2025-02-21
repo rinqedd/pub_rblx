@@ -1,0 +1,173 @@
+local DrawingLib = {}
+Drawing.__index = Drawing
+
+local Players = game:GetService("Players")
+local LocalPlayer = game:GetService("LocalPlayer")
+
+local UIHolder = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+
+if gethui then
+    UIHolder = gethui()
+end
+
+local DrawingHolder = Instance.new("ScreenGui")
+DrawingHolder.Name = "DrawingHolder"
+DrawingHolder.IgnoreGuiInset = true
+DrawingHolder.ResetOnSpawn = false
+DrawingHolder = UIHolder
+
+local Types = setmetatable({
+    ["Line"] = function(self)
+
+    end;
+
+    ["Box"] = function(self)
+
+    end;
+
+    ["Circle"] = function(self)
+
+    end
+}, {
+    __index = function(self, key)
+        return function(DrawTable)
+            self:Clear()
+            return "Invalid index " .. key
+        end
+    end
+})
+
+local function GetMidpointUDim2(UD1, UD2)
+	local xScale = (UD1.X.Scale + UD2.X.Scale) / 2
+	local xOffset = (UD1.X.Offset + UD2.X.Offset) / 2
+	local yScale = (UD1.Y.Scale + UD2.Y.Scale) / 2
+	local yOffset = (UD1.Y.Offset + UD2.Y.Offset) / 2
+
+	return UDim2.new(xScale, xOffset, yScale, yOffset)
+end
+
+local function GetDiffUDim2(UD1, UD2)
+	local xsDiff = UD2.X.Scale - UD1.X.Scale
+	local xoDiff = UD2.X.Offset - UD1.X.Offset
+	local ysDiff = UD2.Y.Scale - UD1.Y.Scale
+	local yoDiff = UD2.Y.Offset - UD1.Y.Offset
+	
+	return UDim2.new(xsDiff, xoDiff, ysDiff, yoDiff)
+end
+
+
+local function GetUnitAndMagnitudeUDim2(UD1, UD2)
+	local Diff = GetDiffUDim2(UD1, UD2)
+	local MagnitudeSq = Diff.X.Scale ^ 2 + Diff.X.Offset ^ 2 + Diff.Y.Scale ^ 2 + Diff.Y.Offset ^ 2
+
+	if MagnitudeSq == 0 then
+		return Vector2.new(0, 0), 0
+	end
+	
+	local Magnitude = math.sqrt(MagnitudeSq)
+
+	local UnitX = (Diff.X.Scale + Diff.X.Offset) / Magnitude
+	local UnitY = (Diff.Y.Scale + Diff.Y.Offset) / Magnitude
+
+	return Vector2.new(UnitX, UnitY), Magnitude
+end
+
+function Drawing.new(Type)
+    local self = setmetatable({}, Drawing)
+
+    self.Type = Type
+    self.Pos1 = nil
+    self.Pos2 = nil
+
+    self.Frame = Instance.new("Frame")
+    self.Frame.Name = Type
+    self.Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    self.Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+    local Result = Types[Type](self)
+
+    if Result == 1 then
+        self.Frame.Parent = DrawingHolder
+    else
+        --print(Result)
+    end
+
+    return self
+end
+
+function Drawing:Thickness(Thickness)
+    if Thickness and typeof(Thickness) == "number" and self.Type then
+        if self.Type == "Line" then
+            local SizeX = self.Frame.Size.X.Offset
+            self.Frame.Size = UDim2.new(0, SizeX, 0, Thickness)
+        elseif self.Type == "Circle" or self.Type == "Box" then
+            self.Stroke.Thickness = Thickness
+        end
+    end
+end
+
+function Drawing:Color(Color)
+    if Color and typeof(Color) == "Color3" and self.Type then
+        if self.Type == "Line" then
+            self.Frame.BackgroundColor3 = Color
+        elseif self.Type == "Circle" or self.Type == "Box" then
+            self.Stroke.Color = Color
+        end
+    end
+end
+
+function Drawing:Fill(Color, Transparency)
+    if Color and typeof(Color) == "Color3" and Transparency and typeof(Transparency) == "number" and self.Type then
+        if self.Type ~= Line then
+            self.Frame.BackgroundColor3 = Color
+            self.Frame.Transparency = Transparency or 0
+        end
+    end
+end
+
+function Drawing:Disable()
+    if self.Type then
+        self.Frame.Visible = false
+    end
+end
+
+function Drawing:Enable()
+    if self.Type then
+        self.Frame.Visible = true
+    end
+end
+
+function Drawing:Render(...)
+    if self.Type then
+        local Args = table.pack(...)
+        local Size = self.Frame.Size
+
+        if Args[1] and Args[2] then
+            local Pos1, Pos2 = Args[1], Args[2]
+            self.Pos1, self.Pos2 = Pos1, Pos2
+            local Midpoint = GetMidpointUDim2(Pos1, Pos2)
+
+            if self.Type == "Line" then
+                local Unit, Magnitude = GetUnitAndMagnitudeUDim2(Args[1], Args[2])
+
+                self.Frame.Position = Midpoint
+                self.Frame.Size = UDim2.new(Size.X.Scale, Magnitude, Size.Y.Scale, Size.Y.Offset)
+                self.Frame.Rotation = math.atan2(Unit.Y, Unit.X) * 180 / math.pi
+            elseif self.Type == "Box" or self.Type == "Circle" then
+                local Diff = GetDiffUDim2(Pos1, Pos2)
+
+                self.Frame.Size = Diff
+                self.Frame.Position = Midpoint
+            end
+        end
+    end
+end
+
+function Drawing:Clear()
+    if self.Type then
+        self.Frame:Destroy()
+        self = nil
+    end
+end
+
+return Drawing
