@@ -14,7 +14,7 @@ local DrawingHolder = Instance.new("ScreenGui")
 DrawingHolder.Name = "DrawingHolder"
 DrawingHolder.IgnoreGuiInset = true
 DrawingHolder.ResetOnSpawn = false
-DrawingHolder = UIHolder
+DrawingHolder.Parent = UIHolder
 
 local Types = setmetatable({
     ["Line"] = function(self)
