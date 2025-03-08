@@ -1,0 +1,616 @@
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Afterglow = {}
+function Afterglow:Window(Bind)
+	local LibUI = game:GetObjects("rbxassetid://9731512703")[1]
+	LibUI.Parent = game.CoreGui
+	--local LibUI = game.ReplicatedStorage.Afterglow
+	--LibUI.Parent = game.Players.LocalPlayer.PlayerGui
+
+	local Main = LibUI.Main
+
+	local counter = 0
+	local function zigzag(X) return math.acos(math.cos(X*math.pi))/math.pi end
+	coroutine.wrap(function()
+		while wait(0.1) do
+			Main:WaitForChild("Background"):WaitForChild("Back"):WaitForChild("RGB").ImageColor3 = Color3.fromHSV(zigzag(counter),1,1)
+			counter = counter + 0.01
+			wait(0.15)
+		end
+	end)()
+
+	local Examples = Main.Examples
+	local MenuButtons = Main.Buttons
+
+	local TurnedOn = true
+
+	local Sound = Instance.new('Sound')
+	Sound.Parent = game.Workspace
+	Sound.Name = 'Sound1'
+	Sound.Volume = 1.7
+	Sound.SoundId = 'rbxassetid://177266782'
+
+	local Sound2 = Instance.new('Sound')
+	Sound2.Parent = game.Workspace
+	Sound2.Name = 'Sound2'
+	Sound2.Volume = 1.7
+	Sound2.SoundId = 'rbxassetid://1412830636'
+	Sound2:Play()
+
+	local Sound3 = Instance.new('Sound')
+	Sound3.Parent = game.Workspace
+	Sound3.Name = 'Sound3'
+	Sound3.Volume = 1.9
+	Sound3.SoundId = 'rbxassetid://178104980'
+
+	local dragging
+	local dragInput
+	local dragStart
+	local startPos
+
+	local function Tween(inst, tType, t, yield, pref)
+		local Tween = TweenService:Create(inst, TweenInfo.new(pref and pref or t and t or 1), tType)
+		Tween:Play()
+
+		if yield then
+			Tween.Completed:Wait()
+		end
+	end
+
+	local function update(input)
+		local delta = input.Position - dragStart
+		Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+
+	Main.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = Main.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	Main.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
+
+	function Afterglow:Notify(desc)
+		game:GetService("StarterGui"):SetCore("SendNotification", {
+			Title = "Afterglow",
+			Text = desc
+		})
+	end
+
+	local Tabs = {}
+	local AllTabs = {}
+	function Tabs:Tab(Tittle)
+		local Tab = Examples.Tab:Clone()
+		Tab.Name = Tittle
+		Tab.Parent = Main
+
+		table.insert(AllTabs, Tab)
+
+		local MenuButton = Examples.MenuButton:Clone()
+		MenuButton.Name = Tittle
+		MenuButton.Text = Tittle
+		MenuButton.Parent = MenuButtons
+
+		local opentab = function(DoNotPlaySound)
+			if DoNotPlaySound ~= true then Sound:Play() end
+
+			for i,v in pairs(AllTabs) do
+				v.Visible = false
+			end
+
+			for i,v in pairs(Main.Buttons:GetChildren()) do
+				if v:IsA("TextButton") then
+					v.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+				end
+			end
+
+			if Tab.Visible == false then
+				MenuButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			end
+
+			Tab.Visible = true
+		end
+
+		opentab(true)
+
+		MenuButton.MouseButton1Click:Connect(opentab)
+
+		local Container = {}
+		function Container:SelectTab(DoNotPlaySound)
+			opentab(DoNotPlaySound)
+		end
+
+		function Container:Label(Text)
+			local Label = Examples.Label:Clone()
+			Label.Text = Text
+			Label.Parent = Tab
+			Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+
+			local LabelContainer = {}
+			function LabelContainer:Update(NewText)
+				Label.Text = NewText
+			end
+
+			return LabelContainer
+		end
+
+		function Container:Line()
+			local Line = Examples.Line:Clone()
+			Line.Parent = Tab
+			Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+		end
+
+		function Container:Button(Text, Callback)
+			local Button = Examples.Button:Clone()
+			Button.Parent = Tab
+			Button.Name = Text
+			Button.TextLabel.Text = Text
+			Button.MouseButton1Click:Connect(function()
+				Sound:Play()
+				Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+				wait(0.05) 
+				Button.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+
+				success, err = pcall(Callback)
+				if not success then print(err) end
+			end)
+			Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15) 	
+			
+			local ButtonContainer = {}
+			function ButtonContainer:Press(DontPlaySound)
+			    if not DontPlaySound then
+				    Sound:Play()
+				end
+				Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+				wait(0.05) 
+				Button.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+
+				success, err = pcall(Callback)
+				if not success then print(err) end
+			end
+			return ButtonContainer
+		end
+
+		function Container:Toggle(Text, DefaultValue, Callback, Usable)
+			local Usable = Usable == nil and true or Usable
+
+			local Toggle = Examples.Toggle:Clone()
+			Toggle.Parent = Tab
+			Toggle.Name = Text
+			Toggle.TextLabel.Text = Text
+
+			local Circle = Toggle.CheckLine.Check
+
+			local value = false
+
+			local function togglefunction(DontPlaySound, CustomValue)
+				if CustomValue ~= nil then value = CustomValue end
+
+				if value == false then
+					local tweenInfo1 = TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+					local tween1 = TweenService:Create(Circle, tweenInfo1, {Position=UDim2.new(0.75, 0, 0.5, 0), ImageColor3 = Color3.fromRGB(0, 0, 0)})
+					value = true
+
+					--tween1.Completed:Connect(function()  end)
+					if not DontPlaySound then Sound:Play() end
+					tween1:Play()
+    				success, err = pcall(Callback, value)
+    				if not success then print(err) end
+				else
+					local tweenInfo1 = TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+					local tween1 = TweenService:Create(Circle, tweenInfo1, {Position=UDim2.new(0.25, 0, 0.5, 0), ImageColor3 = Color3.fromRGB(255, 255, 255)})
+					value = false
+        
+					--tween1.Completed:Connect(function()  end)
+					if not DontPlaySound then Sound:Play() end
+					tween1:Play()
+    				success, err = pcall(Callback, value)
+    				if not success then print(err) end
+				end
+			end
+
+			if DefaultValue then
+				togglefunction(true)
+			end
+
+			if Usable then
+				Toggle.MouseButton1Click:Connect(togglefunction)
+			end
+
+			local ToggleContainer = {}
+			function ToggleContainer:Enable(DontPlaySound2)
+				togglefunction(DontPlaySound2, false)
+			end
+
+			function ToggleContainer:Disable(DontPlaySound2)
+				togglefunction(DontPlaySound2, true)
+			end
+
+			function ToggleContainer:Toggle(DontPlaySound2)
+				togglefunction(DontPlaySound2)
+			end
+
+			Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+			return ToggleContainer
+		end
+
+		function Container:TextBox(Text, Hint, Callback)
+			local Hint = Hint or "Enter your text"
+
+			local TextBox = Examples.TextBox:Clone()
+			TextBox.Parent = Tab
+			TextBox.Name = Text
+			TextBox.TextLabel.Text = Text
+			TextBox.Box.PlaceholderText = Hint
+
+			local TextBoxFunc = function()
+				Sound:Play()
+				TextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+				wait(0.05) 
+				TextBox.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+
+				success, err = pcall(Callback, TextBox.Box.Text)
+				if not success then print(err) end
+			end
+
+			TextBox.Box.FocusLost:Connect(TextBoxFunc)
+			TextBox.MouseButton1Click:Connect(TextBoxFunc)
+
+			Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+		end
+
+		function Container:Slider(Text, Minimum, Maximum, Default, Callback)
+			local Slider = Examples.Slider:Clone()
+			Slider.Parent = Tab
+			Slider.Name = Text
+			Slider.TextLabel.Text = Text
+
+			local Value = Slider.Value
+			--Value.Text = Default
+
+			Value.Text = tostring(Default and math.floor((Default / Maximum) * (Maximum - Minimum) + Minimum) or 0)
+
+			local SlideCircle = Slider.SliderLine.SliderCircle
+			SlideCircle.Position = SlideCircle.Position + UDim2.new((Default or 0) / Maximum, 0, 0, 0)
+
+
+			local SlideFrame = Slider.SliderLine
+			local CurrentValueFrame = Slider.ValueLine
+			CurrentValueFrame.Size = UDim2.new((Default or 0) / Maximum, 0, 0, 6)
+
+			SlideCircle.Draggable = false
+
+			local function move(input)
+				local pos = UDim2.new(math.clamp((input.Position.X - (SlideFrame.AbsolutePosition.X)) / (SlideFrame.AbsoluteSize.X - 15), 0, 1), -12, -0.85, 0)
+				local pos1 = UDim2.new(math.clamp((input.Position.X - (SlideFrame.AbsolutePosition.X)) / (SlideFrame.AbsoluteSize.X - 15), 0, 1), -12, 0, 6)
+
+				CurrentValueFrame:TweenSize(pos1, "Out", "Sine", 0.1, true)
+				SlideCircle:TweenPosition(pos, "Out", "Sine", 0.1, true)
+
+				local value = math.floor(((pos1.X.Scale * Maximum) / Maximum) * (Maximum - Minimum) + Minimum)
+
+				Value.Text = tostring(value)
+				success, err = pcall(Callback, value)
+				if not success then print(err) end
+			end
+
+			SlideCircle.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					SlideCircle.Draggable = true
+					Sound:Play()
+				end
+			end)
+			SlideCircle.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then SlideCircle.Draggable = false end end)
+			game:GetService("UserInputService").InputChanged:Connect(function(input) if SlideCircle.Draggable and input.UserInputType == Enum.UserInputType.MouseMovement then move(input) end end)
+
+			Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+		end
+
+		function Container:Dropdown(Text, IsOpenedByDefault, Callback)
+			local Dropdown = Examples.Dropdown:Clone()
+			Dropdown.Parent = Tab
+			Dropdown.Name = Text
+			Dropdown.TextLabel.Text = Text
+
+			local ToggledOn = IsOpenedByDefault
+			local DropdownFrame = Dropdown.DropdownFrame
+			local Arrow = Dropdown.Arrow
+
+			local DropdownContainer = {}
+			local AllModdedThings = {}
+
+			function DropdownContainer:ModdedToggle(Text, DefaultValue, Callback, Usable)
+				local Usable = Usable == nil and true or Usable
+
+				local Toggle = Examples.DropdownToggle:Clone()
+				Toggle.Parent = Dropdown.DropdownFrame
+				Toggle.Name = Text
+				Toggle.TextLabel.Text = Text
+
+				table.insert(AllModdedThings, Toggle)
+
+				local Circle = Toggle.CheckLine.Check
+
+				local value = false
+
+				local function togglefunction(DontPlaySound, CustomValue)
+					if CustomValue ~= nil then value = CustomValue end
+
+					if value == false then
+						local tweenInfo1 = TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+						local tween1 = TweenService:Create(Circle, tweenInfo1, {Position=UDim2.new(0.75, 0, 0.5, 0), ImageColor3 = Color3.fromRGB(0, 0, 0)})
+						value = true
+
+    					--tween1.Completed:Connect(function()  end)
+    					if not DontPlaySound then Sound:Play() end
+    					tween1:Play()
+        				success, err = pcall(Callback, value)
+        				if not success then print(err) end
+					else
+						local tweenInfo1 = TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+						local tween1 = TweenService:Create(Circle, tweenInfo1, {Position=UDim2.new(0.25, 0, 0.5, 0), ImageColor3 = Color3.fromRGB(255, 255, 255)})
+						value = false
+
+    					--tween1.Completed:Connect(function()  end)
+    					if not DontPlaySound then Sound:Play() end
+    					tween1:Play()
+        				success, err = pcall(Callback, value)
+        				if not success then print(err) end
+					end
+				end
+
+				if DefaultValue then
+					togglefunction(true)
+				end
+
+				if Usable then
+					Toggle.MouseButton1Click:Connect(togglefunction)
+				end
+
+				Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+
+				local ModdedToggleContainer = {}
+				function ModdedToggleContainer:Remove()
+					table.remove(AllModdedThings, table.find(AllModdedThings,Toggle))
+					Toggle:Destroy()
+					wait()	
+					Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, Dropdown.DropdownFrame.UIListLayout.AbsoluteContentSize.Y)
+					DropdownContainer:Update(false, false)
+				end
+
+				function ModdedToggleContainer:Enable(DontPlaySound2)
+					togglefunction(DontPlaySound2, false)
+				end
+
+				function ModdedToggleContainer:Disable(DontPlaySound2)
+					togglefunction(DontPlaySound2, true)
+				end
+
+				function ModdedToggleContainer:Toggle(DontPlaySound2)
+					togglefunction(DontPlaySound2)
+				end
+
+				DropdownContainer:Update(false, false)
+				return ModdedToggleContainer
+			end
+
+			function DropdownContainer:ModdedButton(Text, Callback)
+				local ModdedButton = Examples.DropdownButton:Clone()
+				ModdedButton.Parent = Dropdown.DropdownFrame
+				ModdedButton.Name = Text
+				ModdedButton.TextLabel.Text = Text
+
+				table.insert(AllModdedThings, ModdedButton)
+
+				ModdedButton.MouseButton1Click:Connect(function()
+					Sound:Play()
+					ModdedButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+					wait(0.05) 
+					ModdedButton.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+
+    				success, err = pcall(Callback)
+    				if not success then print(err) end
+				end)
+
+				local ModdedButtonContainer = {}
+				function ModdedButtonContainer:Press(DontPlaySound)
+				    if not DontPlaySound then
+					    Sound:Play()
+					end
+
+					ModdedButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+					wait(0.05) 
+					ModdedButton.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+
+    				success, err = pcall(Callback)
+    				if not success then print(err) end
+				end
+				
+				function ModdedButtonContainer:Remove()
+					table.remove(AllModdedThings, table.find(AllModdedThings, ModdedButton))
+					ModdedButton:Destroy()
+					wait()
+					Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, Dropdown.DropdownFrame.UIListLayout.AbsoluteContentSize.Y) 
+					DropdownContainer:Update(false, false)
+				end
+
+				DropdownContainer:Update(false, false)
+				return ModdedButtonContainer
+			end
+
+			function DropdownContainer:Clear()
+				for i,v in pairs(AllModdedThings) do
+					v:Destroy()
+				end
+				wait()
+				DropdownContainer:Close()
+				AllModdedThings = {}
+			end
+
+			function DropdownContainer:Open()
+				ToggledOn = true
+
+				if #AllModdedThings <= 0 then
+					Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0, 0, 0)
+					Tween(Arrow, {Rotation = 90, Position = UDim2.new(0.87, 0, 0.15, 0)}, 0.2)
+					Tween(Dropdown.TextLabel, {Position = UDim2.new(0.025, 0, -0.15, 0)}, 0.2)
+					Tween(DropdownFrame, {Size = UDim2.new(0, 303, 0, 0)}, 0.2)
+					Tween(Dropdown, {Size = UDim2.new(0, 303, 0, 38)}, 0.2)
+					coroutine.wrap(function()
+						wait(0.2)
+						Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+					end)()
+				end
+
+				local NewDropDownTween
+				local NewDropDownFrameTween
+				if #AllModdedThings >= 2 then
+					NewDropDownTween = {Size = UDim2.new(0, 303, 0, 124)}
+					NewDropDownFrameTween = {Size = UDim2.new(0, 303, 0, 82), Position = UDim2.new(0, 0, 0.35, 0)}
+				else
+					NewDropDownTween = {Size = UDim2.new(0, 303, 0, 76)}
+					NewDropDownFrameTween = {Size = UDim2.new(0, 303, 0, 38), Position = UDim2.new(0, 0, 0.46, 0)}
+				end
+
+				Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, Dropdown.DropdownFrame.UIListLayout.AbsoluteContentSize.Y)
+				Tween(Arrow, {Rotation = -90, Position = UDim2.new(0.87, 0, 0.085, 0)}, 0.2)
+				Tween(Dropdown.TextLabel, {Position = UDim2.new(0.025, 0, -0.035, 0)}, 0.2)
+				Tween(DropdownFrame, NewDropDownFrameTween, 0.2)
+				Tween(Dropdown, NewDropDownTween, 0.2)	
+				coroutine.wrap(function()
+					wait(0.2)
+					Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+				end)()
+			end
+
+			function DropdownContainer:Close()
+				Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0, 0, 0)
+				Tween(Arrow, {Rotation = 90, Position = UDim2.new(0.87, 0, 0.15, 0)}, 0.2)
+				Tween(Dropdown.TextLabel, {Position = UDim2.new(0.025, 0, -0.15, 0)}, 0.2)
+				Tween(DropdownFrame, {Size = UDim2.new(0, 303, 0, 0)}, 0.2)
+				Tween(Dropdown, {Size = UDim2.new(0, 303, 0, 38)}, 0.2)			
+				coroutine.wrap(function()
+					wait(0.2)
+					Tab.CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)
+				end)()
+				ToggledOn = false
+			end
+
+			function DropdownContainer:Update(UpdateValues, PlaySound)			
+				if PlaySound then Sound:Play() end
+
+				local OldToggledOn
+				if not UpdateValues then
+					OldToggledOn = ToggledOn
+					ToggledOn = not ToggledOn
+				end
+
+				if ToggledOn then
+					if UpdateValues then ToggledOn = false end
+					Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0, 0, 0)
+					Tween(Arrow, {Rotation = 90, Position = UDim2.new(0.87, 0, 0.15, 0)}, 0.2)
+					Tween(Dropdown.TextLabel, {Position = UDim2.new(0.025, 0, -0.15, 0)}, 0.2)
+					Tween(DropdownFrame, {Size = UDim2.new(0, 303, 0, 0)}, 0.2)
+					Tween(Dropdown, {Size = UDim2.new(0, 303, 0, 38)}, 0.2)			
+					coroutine.wrap(function()
+						wait(0.2)
+						Tween(Tab, {CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)}, 0.2)
+					end)()
+				else
+					if UpdateValues then ToggledOn = true end
+
+					if #AllModdedThings <= 0 then
+						if UpdateValues then ToggledOn = false end
+						Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0, 0, 0)
+						Tween(Arrow, {Rotation = 90, Position = UDim2.new(0.87, 0, 0.15, 0)}, 0.2)
+						Tween(Dropdown.TextLabel, {Position = UDim2.new(0.025, 0, -0.15, 0)}, 0.2)
+						Tween(DropdownFrame, {Size = UDim2.new(0, 303, 0, 0)}, 0.2)
+						Tween(Dropdown, {Size = UDim2.new(0, 303, 0, 38)}, 0.2)			
+						coroutine.wrap(function()
+							wait(0.2)
+							Tween(Tab, {CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)}, 0.2)
+						end)()
+						return
+					end
+
+					local NewDropDownTween
+					local NewDropDownFrameTween
+					if #AllModdedThings >= 2 then
+						NewDropDownTween = {Size = UDim2.new(0, 303, 0, 124)}
+						NewDropDownFrameTween = {Size = UDim2.new(0, 303, 0, 82), Position = UDim2.new(0, 0, 0.35, 0)}
+					else
+						NewDropDownTween = {Size = UDim2.new(0, 303, 0, 76)}
+						NewDropDownFrameTween = {Size = UDim2.new(0, 303, 0, 38), Position = UDim2.new(0, 0, 0.46, 0)}
+					end
+
+					Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, Dropdown.DropdownFrame.UIListLayout.AbsoluteContentSize.Y)
+					Tween(Arrow, {Rotation = -90, Position = UDim2.new(0.87, 0, 0.085, 0)}, 0.2)
+					Tween(Dropdown.TextLabel, {Position = UDim2.new(0.025, 0, -0.035, 0)}, 0.2)
+					Tween(DropdownFrame, NewDropDownFrameTween, 0.2)
+					Tween(Dropdown, NewDropDownTween, 0.2)	
+					coroutine.wrap(function()
+						wait(0.2)
+						Tween(Tab, {CanvasSize = UDim2.new(0, 0, 0, Tab.UIListLayout.AbsoluteContentSize.Y + 15)}, 0.4)
+					end)()
+				end
+				if not UpdateValues then
+					ToggledOn = OldToggledOn
+				end
+				if UpdateValues then 
+				    success, err = pcall(Callback)
+    				if not success then print(err) end
+				end
+			end
+
+			--DropdownContainer:Update(false, false)
+
+			Dropdown.MouseButton1Click:Connect(function() DropdownContainer:Update(true, true) end)
+			Dropdown.Arrow.MouseButton1Click:Connect(function() DropdownContainer:Update(true, true) end)
+
+			Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0, 0, 0)
+			--Dropdown.DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, Dropdown.DropdownFrame.UIListLayout.AbsoluteContentSize.Y) 	
+			return DropdownContainer
+		end
+
+		if #AllTabs > 9 then
+			MenuButtons.CanvasSize = UDim2.new(0, 0, 0, MenuButtons.UIListLayout.AbsoluteContentSize.Y + 5)
+		end
+		return Container
+	end
+
+	Main:TweenPosition(UDim2.new(0.351, 0, 0.209, 0), "Out", "Sine", 0.2, true)
+
+	UserInputService.InputBegan:connect(function(input, chat)
+		if input.KeyCode == Bind and not chat then
+			Sound3:Play()
+
+			if TurnedOn then		
+				Main:TweenPosition(UDim2.new(0.351, 0, -1.5, 0), "Out", "Sine", 0.2, true)
+				TurnedOn = false
+			else
+				Main:TweenPosition(UDim2.new(0.351, 0, 0.209, 0), "Out", "Sine", 0.2, true)
+				TurnedOn = true
+			end
+		end
+	end)
+	return Tabs
+end
+return Afterglow
