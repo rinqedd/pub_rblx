@@ -1,0 +1,252 @@
+local ESP
+ESP = { __index = ESP, Drawings = {}, Rigs = {}, Skeletons = {}, Boxes = {}, EnableSwitches = {Boxes = true, Skeleton = true}, Clean = false}
+ 
+DefaultRigs = {
+    ["R15"] = {
+        Head = "UpperTorso";
+        UpperTorso = {
+            "LeftUpperArm";
+            "RightUpperArm";
+            "LowerTorso";
+        };
+        LowerTorso = {
+            "LeftUpperLeg";
+            "RightUpperLeg";
+        };
+        LeftUpperArm = "LeftLowerArm";
+        LeftLowerArm = "LeftHand";
+        RightUpperArm = "RightLowerArm";
+        RightLowerArm = "RightHand";
+        LeftUpperLeg = "LeftLowerLeg";
+        LeftLowerLeg = "LeftFoot";
+        RightUpperLeg = "RightLowerLeg";
+        RightLowerLeg = "RightFoot";
+    },
+    ["R6"] = {
+        Head = "Torso";
+        Torso = {
+            "Left Arm";
+            "Right Arm";
+            "Left Leg";
+            "Right Leg";
+        }
+    }
+}
+ 
+function ESP:Draw(Type, Properties)
+    local Draw = Drawing.new(Type)
+ 
+    for i, v in pairs(Properties) do
+        Draw[i] = v;
+    end
+ 
+    ESP.Drawings[#ESP.Drawings+1] = function()
+        Draw:Remove()
+    end
+    return Draw
+end
+ 
+function ESP:CleanUp()
+    ESP.Clean = true;
+    local s,f = pcall(function()
+        for i,v in pairs(ESP.Skeletons) do
+            ESP:RemoveDrawing(v)
+        end
+        for i,v in pairs(ESP.Boxes) do
+            ESP:RemoveDrawing(v)
+        end
+    end)
+    if s then
+        ESP.Clean = false
+    else
+        warn('Clean up error:',f);
+        ESP.Clean = false
+    end
+end
+ 
+function ESP:CreateRig(RigData)
+    local Links = {}
+ 
+    for i,v in pairs(RigData) do
+        Links[i] = v
+    end
+    table.insert(ESP.Rigs, Links);
+ 
+    return Links
+end
+ 
+function ESP:DrawSkeleton(Model, Rig)
+    ESP.Skeletons[Model.Name] = {}
+    local c = Model.Parent
+    for i,v in pairs(Model:GetChildren()) do
+        if v:IsA("BasePart") and Rig[v.Name] ~= nil then
+            if typeof(Rig[v.Name]) ~= "table" then
+                Rig[v.Name] = {Rig[v.Name]}
+            end
+            for _, Index in pairs(Rig[v.Name]) do
+                local Line_Drawing = ESP:Draw("Line", {Thickness = 2, Color = Color3.fromRGB(255,255,255)});
+                table.insert(ESP.Skeletons[Model.Name], Line_Drawing)
+ 
+                coroutine.resume(coroutine.create(function()
+                    local x = 0;
+                    while Model.Parent == c and ESP.Clean == false do
+                        if ESP.Clean == true then
+                            ESP.Clean = false
+                            break
+                        end
+                        if not v or not Model:FindFirstChild(Index) then return end
+                        if not Line_Drawing or Line_Drawing == nil then break end
+                        local pv1, isin_v1 = workspace.CurrentCamera:WorldToViewportPoint(v.Position)
+                        local pv2, isin_v2  = workspace.CurrentCamera:WorldToViewportPoint(Model:FindFirstChild(Index).Position)
+ 
+                        x+=0.0075
+                        if (isin_v1 == true and isin_v2 == true) and ESP.EnableSwitches.Skeleton == true and Line_Drawing ~= nil then
+                            Line_Drawing.Visible = true
+                            Line_Drawing.From = Vector2.new(pv1.X, pv1.Y);
+                            Line_Drawing.To = Vector2.new(pv2.X, pv2.Y);
+                            Line_Drawing.Color = Color3.fromHSV( math.acos(math.cos( (x+(i/50)) *math.pi))/math.pi, 1, 1)
+                        elseif Line_Drawing ~= nil then
+                            Line_Drawing.Visible = false
+                        end
+                        game:GetService("RunService").RenderStepped:Wait()
+                    end
+                    ESP:RemoveDrawing(ESP.Skeletons[Model.Name])
+                end))
+            end
+        end
+    end
+ 
+    return ESP.Skeletons[Model.Name]
+end
+ 
+function ESP:DrawBox(Model, Part)
+    local Temp = {
+      ["Text"] = Drawing.new("Text")
+    }
+    Temp.Text.Text = Model.Name
+    Temp.Text.Size = 12
+    Temp.Text.Center = true
+    Temp.Text.Color = Color3.fromRGB(255,255,255)
+    Temp.Text.Font = Drawing.Fonts.Plex
+    local Box = {
+        [1] = ESP:Draw("Line", {Thickness = 2, Color = Color3.fromRGB(255,255,255)});
+        [2] = ESP:Draw("Line", {Thickness = 2, Color = Color3.fromRGB(255,255,255)});
+        [3] = ESP:Draw("Line", {Thickness = 2, Color = Color3.fromRGB(255,255,255)});
+        [4] = ESP:Draw("Line", {Thickness = 2, Color = Color3.fromRGB(255,255,255)});
+    }
+    ESP.Boxes[Model.Name] = Box
+ 
+    local c = Model.Parent
+    coroutine.resume(coroutine.create(function()
+        local x = 0;
+        while Model.Parent == c and ESP.Clean == false do
+            if ESP.Clean == true then
+                ESP.Clean = false
+                break
+            end
+            local point = nil
+            if Model:FindFirstChild("Head") then
+                point = Model.Head
+            else point = Model.PrimaryPart
+            end
+            local vector, canSee = workspace.CurrentCamera:WorldToViewportPoint(point.Position)
+            Temp.Text.Position = Vector2.new(vector.X, vector.Y - 25)
+            local Orientation, Size = Model:GetBoundingBox()
+            local CF = Orientation
+            local TopLeft, TLVis = workspace.CurrentCamera:WorldToViewportPoint((CF * CFrame.new(Size.X/2, Size.Y/2, 0)).Position);
+            local TopRight, TRVis = workspace.CurrentCamera:WorldToViewportPoint((CF * CFrame.new(-Size.X/2, Size.Y/2, 0)).Position);
+            local BottomLeft, BLVis = workspace.CurrentCamera:WorldToViewportPoint((CF * CFrame.new(Size.X/2, -Size.Y/2, 0)).Position);
+            local BottomRight, BRVis = workspace.CurrentCamera:WorldToViewportPoint((CF * CFrame.new(-Size.X/2, -Size.Y/2, 0)).Position);
+ 
+            if not Box[1] or not Box[2] or not Box[3] or not Box[4] then break end
+            Box[1].From = Vector2.new(TopLeft.X, TopLeft.Y) Box[1].To = Vector2.new(TopRight.X, TopRight.Y)
+            Box[2].From = Vector2.new(TopLeft.X, TopLeft.Y) Box[2].To = Vector2.new(BottomLeft.X, BottomLeft.Y)
+            Box[3].From = Vector2.new(TopRight.X, TopRight.Y) Box[3].To = Vector2.new(BottomRight.X, BottomRight.Y)
+            Box[4].From = Vector2.new(BottomLeft.X, BottomLeft.Y) Box[4].To = Vector2.new(BottomRight.X, BottomRight.Y)
+ 
+            --RGB ;OO
+            x+=0.0075
+ 
+            --Box[1].Color = Color3.fromHSV( math.acos(math.cos( (x+(15/50)) *math.pi))/math.pi, 1, 1)
+            --Box[2].Color = Color3.fromHSV( math.acos(math.cos( (x+(10/50)) *math.pi))/math.pi, 1, 1)
+            --Box[3].Color = Color3.fromHSV( math.acos(math.cos( (x+(10/50)) *math.pi))/math.pi, 1, 1)
+            --Box[4].Color = Color3.fromHSV( math.acos(math.cos( (x+(5/50)) *math.pi))/math.pi, 1, 1)
+ 
+            if TLVis or TRVis or BLVis or BRVis and ESP.EnableSwitches.Boxes == true and Box[1] and Box[2] and Box[3] and Box[4] then
+                for i,v in pairs(Box) do
+                    v.Visible = true
+                end
+                Temp.Text.Visible = true
+            else
+                if not Box[1] or not Box[2] or not Box[3] or not Box[4] then break end
+                for i,v in pairs(Box) do
+                    v.Visible = false
+                end
+                Temp.Text.Visible = false
+            end
+            game:GetService("RunService").RenderStepped:Wait()
+        end
+        ESP:RemoveDrawing(Box)
+    end))
+    Box[5] = Temp.Text
+    
+    return Box
+end
+ 
+function ESP:RemoveDrawing(Drawing_Table)
+    if not Drawing_Table then return warn'No drawing provided' end
+    table.foreach(Drawing_Table, function(i, _) _:Remove() end)
+end
+ 
+function ESP:DrawSkeletonPlayers()
+    local Players = game.Players:GetPlayers()
+    local Drawings = {}
+    for i,v in pairs(Players) do
+		if v == game.Players.LocalPlayer then continue end
+        local Char = v.Character
+        if Char then
+            local Rig = (Char:FindFirstChild("UpperTorso") and DefaultRigs.R15 or DefaultRigs.R6)
+            local d = ESP:DrawSkeleton(Char, ESP:CreateRig(Rig))
+            table.insert(Drawings, d)
+        end
+        v.CharacterAdded:Connect(function(c)
+            local Rig = (c:FindFirstChild("UpperTorso") and DefaultRigs.R15 or DefaultRigs.R6)
+            local d = ESP:DrawSkeleton(c, ESP:CreateRig(Rig))
+            table.insert(Drawings, d)
+        end)
+    end
+    game.Players.PlayerAdded:Connect(function(p)
+        p.CharacterAdded:Connect(function(c)
+            local Rig = (c:FindFirstChild("UpperTorso") and DefaultRigs.R15 or DefaultRigs.R6)
+            local d = ESP:DrawSkeleton(c, ESP:CreateRig(Rig))
+            table.insert(Drawings, d)
+        end)
+    end)
+    return Drawings
+end
+ 
+function ESP:DrawBoxPlayers()
+    local Players = game.Players:GetPlayers()
+    local Drawings = {}
+    for i,v in pairs(Players) do
+		if v == game.Players.LocalPlayer then continue end
+        local Char = v.Character
+        if Char then
+            local d = ESP:DrawBox(Char)
+            table.insert(Drawings, d)
+        end
+        v.CharacterAdded:Connect(function(c)
+            local d = ESP:DrawBox(c)
+            table.insert(Drawings, d)
+        end)
+    end
+    game.Players.PlayerAdded:Connect(function(p)
+        p.CharacterAdded:Connect(function(c)
+            local d = ESP:DrawBox(c)
+            table.insert(Drawings, d)
+        end)
+    end)
+    return Drawings
+end
+
+return ESP
